@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
-from app.Model.DatabaseModel import Customer, Project, MessageHistory, Report, User, Variables, Status
+from app.Model.DatabaseModel import Message, Project, MessageHistory, Report, User, Variables, Status, Customer
 from datetime import datetime
 from app.Model.MainTable import MainTableModel
 from sqlalchemy.orm import Session
@@ -12,35 +12,35 @@ from sqlalchemy.orm import Session
 async def get_main_table(db: AsyncSession):
     stmt = (
         select(
-            Customer.id,
-            Customer.last_message,
-            Customer.message_status,
-            Customer.qued_timestamp,
-            Customer.sent_timestamp,
-            Customer.sent_success,
-            Customer.image_url,
-            Customer.phone_numbers,
-            Customer.num_sent,
-            Customer.created_at
+            Message.id,
+            Message.last_message,
+            Message.message_status,
+            Message.qued_timestamp,
+            Message.sent_timestamp,
+            Message.sent_success,
+            Message.image_url,
+            Message.phone_numbers,
+            Message.num_sent,
+            Message.created_at
         )
     )
     result = await db.execute(stmt)
     return result.all()
 
-# Customer CRUD Operations
-async def get_customer(db: AsyncSession, customer_id: int):
-    stmt = select(Customer).filter(Customer.id == customer_id)
+# Message CRUD Operations
+async def get_message(db: AsyncSession, message_id: int):
+    stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
-async def find_customer_with_phone(db: AsyncSession, phone: str):
+async def find_message_with_phone(db: AsyncSession, phone: str):
     phone = phone.replace(" ", "")
-    stmt = select(Customer).filter(func.replace(Customer.phone, ' ', '') == phone)
+    stmt = select(Message).filter(func.replace(Message.phone, ' ', '') == phone)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
-async def insert_customer(db: AsyncSession, item: MainTableModel):
-    new_customer = Customer(
+async def insert_message(db: AsyncSession, item: MainTableModel):
+    new_message = Message(
         last_message=item.last_message,
         message_status=item.message_status,
         qued_timestamp=item.qued_timestamp,
@@ -51,83 +51,83 @@ async def insert_customer(db: AsyncSession, item: MainTableModel):
         num_sent=item.num_sent,
         created_at=item.created_at
     )
-    db.add(new_customer)
+    db.add(new_message)
     await db.commit()
-    await db.refresh(new_customer)
-    return new_customer
+    await db.refresh(new_message)
+    return new_message
 
-async def update_customer(db: AsyncSession, customer_id: int, item: MainTableModel):
-    stmt = select(Customer).filter(Customer.id == customer_id)
+async def update_message(db: AsyncSession, message_id: int, item: MainTableModel):
+    stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
-    existing_customer = result.scalar_one_or_none()
+    existing_message = result.scalar_one_or_none()
     
-    if existing_customer:
-        existing_customer.last_message = item.last_message
-        existing_customer.message_status = item.message_status
-        existing_customer.qued_timestamp = item.qued_timestamp
-        existing_customer.sent_timestamp = item.sent_timestamp
-        existing_customer.sent_success = item.sent_success
-        existing_customer.image_url = item.image_url
-        existing_customer.phone_numbers = item.phone_numbers
-        existing_customer.num_sent = item.num_sent
-        existing_customer.created_at = item.created_at
+    if existing_message:
+        existing_message.last_message = item.last_message
+        existing_message.message_status = item.message_status
+        existing_message.qued_timestamp = item.qued_timestamp
+        existing_message.sent_timestamp = item.sent_timestamp
+        existing_message.sent_success = item.sent_success
+        existing_message.image_url = item.image_url
+        existing_message.phone_numbers = item.phone_numbers
+        existing_message.num_sent = item.num_sent
+        existing_message.created_at = item.created_at
         await db.commit()
-        return existing_customer
+        return existing_message
     return None
 
-async def delete_customer(db: AsyncSession, customer_id: int):
-    stmt = select(Customer).filter(Customer.id == customer_id)
+async def delete_message(db: AsyncSession, message_id: int):
+    stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
-    customer = result.scalar_one_or_none()
+    message = result.scalar_one_or_none()
 
-    if customer:
-        await db.delete(customer)
+    if message:
+        await db.delete(message)
         await db.commit()
         return True
     return False
 
-async def restore_customer(db: AsyncSession, customer_id: int):
-    stmt = select(Customer).filter(Customer.id == customer_id)
+async def restore_message(db: AsyncSession, message_id: int):
+    stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
-    customer = result.scalar_one_or_none()
+    message = result.scalar_one_or_none()
 
-    if customer:
-        customer.is_deleted = 0
+    if message:
+        message.is_deleted = 0
         await db.commit()
-        return customer
+        return message
     return None
 
-async def update_sending_method(db: AsyncSession, customer_id: int, method: int):
-    stmt = select(Customer).filter(Customer.id == customer_id)
+async def update_sending_method(db: AsyncSession, message_id: int, method: int):
+    stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
-    customer = result.scalar_one_or_none()
+    message = result.scalar_one_or_none()
 
-    if customer:
-        customer.sending_method = method
+    if message:
+        message.sending_method = method
         await db.commit()
-        return customer
+        return message
     return None
 
-async def update_opt_in_status_email(db: AsyncSession, customer_id: int, opt_in_status_email: int):
-    stmt = select(Customer).filter(Customer.id == customer_id)
+async def update_opt_in_status_email(db: AsyncSession, message_id: int, opt_in_status_email: int):
+    stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
-    customer = result.scalar_one_or_none()
+    message = result.scalar_one_or_none()
 
-    if customer:
-        customer.opt_in_status_email = opt_in_status_email
+    if message:
+        message.opt_in_status_email = opt_in_status_email
         await db.commit()
-        return customer
+        return message
     return None
 
-async def update_opt_in_status_phone(db: AsyncSession, customer_id: int, opt_in_status_phone: int):
-    stmt = select(Customer).filter(Customer.id == customer_id)
+async def update_opt_in_status_phone(db: AsyncSession, message_id: int, opt_in_status_phone: int):
+    stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
-    customer = result.scalar_one_or_none()
+    message = result.scalar_one_or_none()
 
-    if customer:
-        customer.opt_in_status_phone = opt_in_status_phone
+    if message:
+        message.opt_in_status_phone = opt_in_status_phone
         await db.commit()
-        return customer
+        return message
     return None
 
 # Project CRUD Operations
@@ -427,13 +427,13 @@ async def check_duplicate_message(db: AsyncSession, message: str):
     result = await db.execute(stmt)
     return result.scalar_one_or_none() is not None
 
-async def update_sent_status(db: AsyncSession, customer_id: int, sent_success: bool):
-    stmt = select(Customer).filter(Customer.id == customer_id)
+async def update_sent_status(db: AsyncSession, message_id: int, sent_success: bool):
+    stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
-    customer = result.scalar_one_or_none()
+    message = result.scalar_one_or_none()
 
-    if customer and sent_success:
-        customer.num_sent += 1
+    if message and sent_success:
+        message.num_sent += 1
         await db.commit()
 
 async def set_db_update_status(db: AsyncSession, status_id: int, db_update_status: int):
@@ -483,3 +483,82 @@ async def create_status(db: AsyncSession):
     await db.commit()
     await db.refresh(new_status)
     return new_status
+
+
+# Add new helper methods for phone number operations
+async def add_phone_number(db: AsyncSession, customer_id: int, phone_number: str):
+    """Add a new phone number to customer's phone numbers list"""
+    stmt = select(Customer).filter(Customer.id == customer_id)
+    result = await db.execute(stmt)
+    customer = result.scalar_one_or_none()
+    
+    if customer:
+        if not customer.phone_numbers:
+            customer.phone_numbers = []
+        if phone_number not in customer.phone_numbers:
+            customer.phone_numbers.append(phone_number)
+            await db.commit()
+        return customer
+    return None
+
+async def remove_phone_number(db: AsyncSession, customer_id: int, phone_number: str):
+    """Remove a phone number from customer's phone numbers list"""
+    stmt = select(Customer).filter(Customer.id == customer_id)
+    result = await db.execute(stmt)
+    customer = result.scalar_one_or_none()
+    
+    if customer and customer.phone_numbers:
+        if phone_number in customer.phone_numbers:
+            customer.phone_numbers.remove(phone_number)
+            await db.commit()
+        return customer
+    return None
+
+# Customer CRUD Operations
+async def insert_customer(db: AsyncSession, phone_numbers: list):
+    """Insert a new customer with a list of phone numbers"""
+    new_customer = Customer(
+        phone_numbers=phone_numbers  # Now expecting a list instead of dict
+    )
+    db.add(new_customer)
+    await db.commit()
+    await db.refresh(new_customer)
+    return new_customer
+
+async def update_customer(db: AsyncSession, customer_id: int, phone_numbers: list):
+    """Update customer's phone numbers list"""
+    stmt = select(Customer).filter(Customer.id == customer_id)
+    result = await db.execute(stmt)
+    customer = result.scalar_one_or_none()
+    
+    if customer:
+        customer.phone_numbers = phone_numbers  # Now expecting a list instead of dict
+        await db.commit()
+        return customer
+    return None
+
+
+async def delete_customer(db: AsyncSession, customer_id: int):
+    stmt = select(Customer).filter(Customer.id == customer_id)
+    result = await db.execute(stmt)
+    customer = result.scalar_one_or_none()
+
+    if customer:
+        await db.delete(customer)
+        await db.commit()
+        return True
+    return False
+
+async def get_customer(db: AsyncSession, customer_id: int):
+    stmt = select(Customer).filter(Customer.id == customer_id)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+async def get_customer_table(db: AsyncSession):
+    """Get all customers with their id and phone numbers"""
+    stmt = select(
+        Customer.id,
+        Customer.phone_numbers
+    )
+    result = await db.execute(stmt)
+    return result.all()

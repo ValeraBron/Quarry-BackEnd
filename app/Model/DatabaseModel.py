@@ -5,8 +5,8 @@ from datetime import datetime
 
 Base = declarative_base()
 
-class Customer(Base):
-    __tablename__ = 'tbl_customer'
+class Message(Base):
+    __tablename__ = 'tbl_message'
 
     id = Column(Integer, primary_key=True)
     last_message = Column(Text)
@@ -82,3 +82,9 @@ class Status(Base):
     xactanalysis_current = Column(Integer)
     project_total = Column(Integer)
     project_current = Column(Integer)
+
+class Customer(Base):
+    __tablename__ = 'tbl_customer'
+
+    id = Column(Integer, primary_key=True)
+    phone_numbers = Column(JSON)

@@ -38,32 +38,30 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
-@router.post('/add-customer')
-async def add_customer(data: MainTableModel, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
+@router.post('/add-message')
+async def add_message(data: MainTableModel, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
     print("dashboard - data: ", data)
-    await crud.insert_customer(db, data)
-    # Process the raw JSON data here
+    await crud.insert_message(db, data.phone_numbers)
     return {"received": data, "message": "Raw data processed successfully"}
 
-@router.post('/update-customer')
-async def update_customer(data: MainTableModel, email: Annotated[str, Depends(get_current_user)], customer_id: int, db: Session = Depends(get_db)):
+@router.post('/update-message')
+async def update_message(data: MainTableModel, email: Annotated[str, Depends(get_current_user)], message_id: int, db: Session = Depends(get_db)):
     print("dashboard - data: ", data)
-    print("dashboard - customer_id: ", customer_id)
-    await crud.update_customer(db, customer_id, data)
+    print("dashboard - message_id: ", message_id)
+    await crud.update_message(db, message_id, data)
     return {"success": "true"}
 
 
-@router.get('/delete-customer')
-async def delete_customer_route(email: Annotated[str, Depends(get_current_user)], customer_id: int, db: Session = Depends(get_db)):
-    await crud.delete_customer(db, customer_id)
+@router.get('/delete-message')
+async def delete_message_route(email: Annotated[str, Depends(get_current_user)], message_id: int, db: Session = Depends(get_db)):
+    await crud.delete_message(db, message_id)
     return {"success": "true"}
 
 
-@router.get('/customer-table')
-async def get_customer_table(db: Session = Depends(get_db)):
-    main_table_data = await crud.get_main_table(db)  # Replace with appropriate await crud operation
+@router.get('/message-table')
+async def get_message_table(db: Session = Depends(get_db)):
+    main_table_data = await crud.get_main_table(db)
     
-    # Convert the SQLAlchemy result rows to dictionaries
     main_table_data_dicts = [
         {
             "id": data.id,
@@ -105,8 +103,8 @@ async def set_sent(email: Annotated[str, Depends(get_current_user)], project_id:
         return {"success": "false"}
 
 @router.get('/change-status')
-async def change_status(email: Annotated[str, Depends(get_current_user)], customer_id: int, method: int, db: Session = Depends(get_db)):
-    await crud.update_sending_method(db, customer_id, method=method)
+async def change_status(email: Annotated[str, Depends(get_current_user)], message_id: int, method: int, db: Session = Depends(get_db)):
+    await crud.update_sending_method(db, message_id, method=method)
     return {"success": "true"}
 
 @router.post('/update-last-message')
@@ -115,12 +113,12 @@ async def update_last_message(email: Annotated[str, Depends(get_current_user)], 
     await crud.update_project(db, last_message.project_id, last_message=last_message.message)
     return {"success": "true"}
 
-@router.get('/download-customer-message')
-async def download_customer_message(email: Annotated[str, Depends(get_current_user)], customer_id: int, db: Session = Depends(get_db)):
-    message = await crud.get_message_history_by_customer_id(db, customer_id)
+@router.get('/download-message-history')
+async def download_message_history(email: Annotated[str, Depends(get_current_user)], message_id: int, db: Session = Depends(get_db)):
+    message = await crud.get_message_history_by_message_id(db, message_id)
     
     # Write data to a text file
-    file_path = 'customer_message.txt'
+    file_path = 'message_history.txt'
     with open(file_path, 'w') as f:
         f.write(message + '\n')
     
@@ -129,7 +127,7 @@ async def download_customer_message(email: Annotated[str, Depends(get_current_us
         raise HTTPException(status_code=404, detail="File not found")
     
     # Return file as response
-    return FileResponse(file_path, media_type='application/octet-stream', filename='customer_message.txt')
+    return FileResponse(file_path, media_type='application/octet-stream', filename='message_history.txt')
 
 @router.get('/download-history-message')
 async def download_history_message(email: Annotated[str, Depends(get_current_user)], history_id: int, db: Session = Depends(get_db)):
@@ -149,8 +147,8 @@ async def download_history_message(email: Annotated[str, Depends(get_current_use
     return FileResponse(file_path, media_type='application/octet-stream', filename='message.txt')
 
 @router.get('/send')
-async def send_message_route(customer_id: int, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
-    await send(customer_id, db)
+async def send_message_route(message_id: int, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
+    await send(message_id, db)
     return {"success": "true"}
 
 @router.post('/set-variables')
@@ -180,28 +178,28 @@ async def get_timer(email: Annotated[str, Depends(get_current_user)], db: Sessio
 
 
 @router.get('/set-opt-in-status-email')
-async def set_opt_in_status_email(email: Annotated[str, Depends(get_current_user)], customer_id: int, opt_in_status_email: int, db: Session = Depends(get_db)):
-    print("dashboard - customer_id: ", customer_id)
-    customer = await crud.get_customer(db, customer_id)
+async def set_opt_in_status_email(email: Annotated[str, Depends(get_current_user)], message_id: int, opt_in_status_email: int, db: Session = Depends(get_db)):
+    print("dashboard - message_id: ", message_id)
+    message = await crud.get_message(db, message_id)
     if opt_in_status_email == 1:
-        await send_opt_in_email(customer_id, customer.email, db)
-    await crud.update_opt_in_status_email(db, customer_id, opt_in_status_email)
+        await send_opt_in_email(message_id, message.email, db)
+    await crud.update_opt_in_status_email(db, message_id, opt_in_status_email)
     return True
 
 @router.get('/set-opt-in-status-phone')
-async def set_opt_in_status_phone(email: Annotated[str, Depends(get_current_user)], customer_id: int, opt_in_status_phone: int, db: Session = Depends(get_db)):
-    print("dashboard - customer_id: ", customer_id)
-    customer = await crud.get_customer(db, customer_id)
+async def set_opt_in_status_phone(email: Annotated[str, Depends(get_current_user)], message_id: int, opt_in_status_phone: int, db: Session = Depends(get_db)):
+    print("dashboard - message_id: ", message_id)
+    message = await crud.get_message(db, message_id)
     if opt_in_status_phone == 1:
-        await send_opt_in_phone(customer.phone, db)
-    await crud.update_opt_in_status_phone(db, customer_id, opt_in_status_phone)
+        await send_opt_in_phone(message.phone, db)
+    await crud.update_opt_in_status_phone(db, message_id, opt_in_status_phone)
     return True
 
 @router.get('/confirm-opt-in-status')
-async def set_opt_in_status(customer_id: int, response: str, db: Session = Depends(get_db)):
-    print("dashboard - confirm-opt-in-status - customer_id: ", customer_id)
+async def set_opt_in_status(message_id: int, response: str, db: Session = Depends(get_db)):
+    print("dashboard - confirm-opt-in-status - message_id: ", message_id)
     
-    await crud.update_opt_in_status_email(db, customer_id, 2 if response == "accept" else 3)
+    await crud.update_opt_in_status_email(db, message_id, 2 if response == "accept" else 3)
     
     data = await crud.get_status(db)
     if data is not None:
@@ -215,7 +213,7 @@ async def set_opt_in_status(customer_id: int, response: str, db: Session = Depen
 
 @router.get('/approved')
 async def set_opt_in_status(email: str, response: str, db: Session = Depends(get_db)):
-    print("dashboard - approved - customer_id: ", email)
+    print("dashboard - approved - message_id: ", email)
     user = await crud.get_user_by_email(db, email)
     
     if response == "accept":
@@ -249,3 +247,52 @@ async def get_variables(email: Annotated[str, Depends(get_current_user)], db: Se
         return True
     else:
         return False
+
+@router.post('/add-customer')
+async def add_customer(data: dict, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
+    print("dashboard - add customer data: ", data)
+    phone_numbers = data.get('phone_numbers', [])
+    if not isinstance(phone_numbers, list):
+        raise HTTPException(
+            status_code=400,
+            detail="phone_numbers must be a list"
+        )
+    await crud.insert_customer(db, phone_numbers)
+    return {"success": "true", "message": "Customer added successfully"}
+
+@router.post('/update-customer')
+async def update_customer(data: dict, email: Annotated[str, Depends(get_current_user)], customer_id: int, db: Session = Depends(get_db)):
+    print("dashboard - update customer data: ", data)
+    print("dashboard - customer_id: ", customer_id)
+    phone_numbers = data.get('phone_numbers', [])
+    if not isinstance(phone_numbers, list):
+        raise HTTPException(
+            status_code=400,
+            detail="phone_numbers must be a list"
+        )
+    await crud.update_customer(db, customer_id, phone_numbers)
+    return {"success": "true"}
+
+@router.get('/delete-customer')
+async def delete_customer(email: Annotated[str, Depends(get_current_user)], customer_id: int, db: Session = Depends(get_db)):
+    if not customer_id:
+        raise HTTPException(
+            status_code=400,
+            detail="customer_id is required"
+        )
+    await crud.delete_customer(db, customer_id)
+    return {"success": "true"}
+
+@router.get('/customer-table')
+async def get_customer_table(db: Session = Depends(get_db)):
+    customer_data = await crud.get_customer_table(db)
+    
+    customer_data_dicts = [
+        {
+            "id": data.id,
+            "phone_numbers": json.loads(data.phone_numbers) if isinstance(data.phone_numbers, str) else data.phone_numbers
+        }
+        for data in customer_data
+    ]
+    
+    return customer_data_dicts
