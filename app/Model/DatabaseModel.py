@@ -88,3 +88,4 @@ class Customer(Base):
 
     id = Column(Integer, primary_key=True)
     phone_numbers = Column(JSON)
+    categories = Column(JSON)

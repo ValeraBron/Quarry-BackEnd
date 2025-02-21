@@ -46,13 +46,11 @@ async def getTwilioCredentials(db: Session):
 
 async def send_sms_via_phone_number(phone_number: str, sms: str, db: Session):
     twilioPhoneNumber, twilioAccountSID, twilioAuthToken = await getTwilioCredentials(db)
-    
     # Initialize the Twilio client
     client = Client(twilioAccountSID, twilioAuthToken)
     print("sms - :", sms)
     if not sms:
         sms = "from getDelmar.com"
-    
     
     # Use a thread pool executor to run the Twilio client in a separate thread
     loop = asyncio.get_event_loop()
@@ -115,19 +113,18 @@ async def send_opt_in_phone(phone_number: str, db: Session):
     # Optionally print the message SID
     return bool(message.sid)
     
-async def send(customer_id: int, db: Session):
-    customer = await crud.get_customer(db, customer_id)
+async def send(message_id: int, db: Session):
+    message = await crud.get_message(db, message_id)
     sent_time = datetime.utcnow()
-    phone_numbers = customer.phone_numbers
+    phone_numbers = message.phone_numbers
 
     async def send_all_sms():
         all_sent_success = True
         for phone_number in phone_numbers:
             try:
-                phone_sent_success = await send_sms_via_phone_number(phone_number, customer.last_message, db)
+                phone_sent_success = await send_sms_via_phone_number(phone_number, message.last_message, db)
                 print("phone_sent_success: ", phone_sent_success)
-                
-                await crud.update_sent_status(db, customer_id, phone_sent_success)
+                await crud.update_sent_status(db, message_id, phone_sent_success)
                 if not phone_sent_success:
                     all_sent_success = False
             except Exception as e:

@@ -41,14 +41,39 @@ async def get_db():
 @router.post('/add-message')
 async def add_message(data: MainTableModel, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
     print("dashboard - data: ", data)
-    await crud.insert_message(db, data.phone_numbers)
+    
+    # Set default values
+    message_data = MainTableModel(
+        last_message=data.last_message,
+        message_status=0,  # default value
+        qued_timestamp=data.qued_timestamp,
+        sent_timestamp=None,
+        sent_success=0,  # default value
+        image_url=data.image_url,
+        phone_numbers=data.phone_numbers,
+        num_sent=0,  # default value
+        created_at=data.created_at
+    )
+    
+    await crud.insert_message(db, message_data)
     return {"received": data, "message": "Raw data processed successfully"}
 
 @router.post('/update-message')
 async def update_message(data: MainTableModel, email: Annotated[str, Depends(get_current_user)], message_id: int, db: Session = Depends(get_db)):
     print("dashboard - data: ", data)
     print("dashboard - message_id: ", message_id)
-    await crud.update_message(db, message_id, data)
+    message_data = MainTableModel(
+        last_message=data.last_message,
+        message_status=0,  # default value
+        qued_timestamp=data.qued_timestamp,
+        sent_timestamp=None,
+        sent_success=0,  # default value
+        image_url=data.image_url,
+        phone_numbers=data.phone_numbers,
+        num_sent=0,  # default value
+        created_at=data.created_at
+    )
+    await crud.update_message(db, message_id, message_data)
     return {"success": "true"}
 
 
@@ -252,25 +277,37 @@ async def get_variables(email: Annotated[str, Depends(get_current_user)], db: Se
 async def add_customer(data: dict, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
     print("dashboard - add customer data: ", data)
     phone_numbers = data.get('phone_numbers', [])
+    categories = data.get('categories', [])
     if not isinstance(phone_numbers, list):
         raise HTTPException(
             status_code=400,
             detail="phone_numbers must be a list"
         )
-    await crud.insert_customer(db, phone_numbers)
+    if not isinstance(categories, list):
+        raise HTTPException(
+            status_code=400,
+            detail="categories must be a list"
+        )
+    await crud.insert_customer(db, phone_numbers, categories)
     return {"success": "true", "message": "Customer added successfully"}
 
-@router.post('/update-customer')
+@router.post('/update-customer') 
 async def update_customer(data: dict, email: Annotated[str, Depends(get_current_user)], customer_id: int, db: Session = Depends(get_db)):
     print("dashboard - update customer data: ", data)
     print("dashboard - customer_id: ", customer_id)
     phone_numbers = data.get('phone_numbers', [])
+    categories = data.get('categories', [])
     if not isinstance(phone_numbers, list):
         raise HTTPException(
             status_code=400,
             detail="phone_numbers must be a list"
         )
-    await crud.update_customer(db, customer_id, phone_numbers)
+    if not isinstance(categories, list):
+        raise HTTPException(
+            status_code=400,
+            detail="categories must be a list"
+        )
+    await crud.update_customer(db, customer_id, phone_numbers, categories)
     return {"success": "true"}
 
 @router.get('/delete-customer')
@@ -290,7 +327,8 @@ async def get_customer_table(db: Session = Depends(get_db)):
     customer_data_dicts = [
         {
             "id": data.id,
-            "phone_numbers": json.loads(data.phone_numbers) if isinstance(data.phone_numbers, str) else data.phone_numbers
+            "phone_numbers": json.loads(data.phone_numbers) if isinstance(data.phone_numbers, str) else data.phone_numbers,
+            "categories": json.loads(data.categories) if isinstance(data.categories, str) else data.categories
         }
         for data in customer_data
     ]

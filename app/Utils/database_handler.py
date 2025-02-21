@@ -515,24 +515,26 @@ async def remove_phone_number(db: AsyncSession, customer_id: int, phone_number: 
     return None
 
 # Customer CRUD Operations
-async def insert_customer(db: AsyncSession, phone_numbers: list):
-    """Insert a new customer with a list of phone numbers"""
+async def insert_customer(db: AsyncSession, phone_numbers: list, categories: list):
+    """Insert a new customer with a list of phone numbers and categories"""
     new_customer = Customer(
-        phone_numbers=phone_numbers  # Now expecting a list instead of dict
+        phone_numbers=phone_numbers,  # List of phone numbers
+        categories=categories  # List of categories
     )
     db.add(new_customer)
     await db.commit()
     await db.refresh(new_customer)
     return new_customer
 
-async def update_customer(db: AsyncSession, customer_id: int, phone_numbers: list):
-    """Update customer's phone numbers list"""
+async def update_customer(db: AsyncSession, customer_id: int, phone_numbers: list, categories: list):
+    """Update customer's phone numbers and categories lists"""
     stmt = select(Customer).filter(Customer.id == customer_id)
     result = await db.execute(stmt)
     customer = result.scalar_one_or_none()
     
     if customer:
-        customer.phone_numbers = phone_numbers  # Now expecting a list instead of dict
+        customer.phone_numbers = phone_numbers
+        customer.categories = categories
         await db.commit()
         return customer
     return None
@@ -555,10 +557,11 @@ async def get_customer(db: AsyncSession, customer_id: int):
     return result.scalar_one_or_none()
 
 async def get_customer_table(db: AsyncSession):
-    """Get all customers with their id and phone numbers"""
+    """Get all customers with their id, phone numbers and categories"""
     stmt = select(
         Customer.id,
-        Customer.phone_numbers
+        Customer.phone_numbers,
+        Customer.categories
     )
     result = await db.execute(stmt)
     return result.all()
