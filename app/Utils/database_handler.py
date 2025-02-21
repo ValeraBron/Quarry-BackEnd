@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
-from app.Model.DatabaseModel import Message, Project, MessageHistory, Report, User, Variables, Status, Customer
+from app.Model.DatabaseModel import Message, Project, MessageHistory, Report, User, Variables, Status, Customer, CustomerCategory
 from datetime import datetime
 from app.Model.MainTable import MainTableModel
 from sqlalchemy.orm import Session
@@ -19,11 +19,17 @@ async def get_main_table(db: AsyncSession):
             Message.sent_timestamp,
             Message.sent_success,
             Message.image_url,
+            Message.categories,
             Message.phone_numbers,
             Message.num_sent,
             Message.created_at
         )
     )
+    result = await db.execute(stmt)
+    return result.all()
+
+async def get_message_num_sent(db: AsyncSession):
+    stmt = select(Message.id, Message.num_sent)#, Message.phone_numbers)
     result = await db.execute(stmt)
     return result.all()
 
@@ -47,8 +53,9 @@ async def insert_message(db: AsyncSession, item: MainTableModel):
         sent_timestamp=item.sent_timestamp,
         sent_success=item.sent_success,
         image_url=item.image_url,
-        phone_numbers=item.phone_numbers,
+        categories=item.categories,
         num_sent=item.num_sent,
+        phone_numbers=item.phone_numbers,
         created_at=item.created_at
     )
     db.add(new_message)
@@ -68,7 +75,7 @@ async def update_message(db: AsyncSession, message_id: int, item: MainTableModel
         existing_message.sent_timestamp = item.sent_timestamp
         existing_message.sent_success = item.sent_success
         existing_message.image_url = item.image_url
-        existing_message.phone_numbers = item.phone_numbers
+        existing_message.categories = item.categories
         existing_message.num_sent = item.num_sent
         existing_message.created_at = item.created_at
         await db.commit()
@@ -435,6 +442,7 @@ async def update_sent_status(db: AsyncSession, message_id: int, sent_success: bo
     if message and sent_success:
         message.num_sent += 1
         await db.commit()
+        await db.refresh(message)
 
 async def set_db_update_status(db: AsyncSession, status_id: int, db_update_status: int):
     stmt = select(Status).filter(Status.id == status_id)
@@ -565,3 +573,40 @@ async def get_customer_table(db: AsyncSession):
     )
     result = await db.execute(stmt)
     return result.all()
+
+async def get_customer_categories(db: AsyncSession):
+    stmt = select(CustomerCategory)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+async def add_customer_category(db: AsyncSession, name: str):
+    new_category = CustomerCategory(name=name)
+    db.add(new_category)
+    await db.commit()
+    await db.refresh(new_category)
+    return new_category
+
+async def update_customer_category(db: AsyncSession, customer_category_id: int, name: str):
+    stmt = select(CustomerCategory).filter(CustomerCategory.id == customer_category_id)
+    result = await db.execute(stmt)
+    category = result.scalar_one_or_none()
+
+    if category:
+        category.name = name
+        await db.commit()
+        return category
+    return None
+
+async def delete_customer_category(db: AsyncSession, customer_category_id: int):
+    stmt = select(CustomerCategory).filter(CustomerCategory.id == customer_category_id)
+    result = await db.execute(stmt)
+    category = result.scalar_one_or_none()
+
+    if category:
+        await db.delete(category)
+        await db.commit()
+        return True
+    return False
+    
+
+

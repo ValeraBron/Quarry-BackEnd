@@ -9,15 +9,17 @@ class Message(Base):
     __tablename__ = 'tbl_message'
 
     id = Column(Integer, primary_key=True)
-    last_message = Column(Text)
     message_status = Column(Integer)
+    categories = Column(JSON)
+    phone_numbers = Column(JSON)
+    last_message = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
     qued_timestamp = Column(DateTime)
     sent_timestamp = Column(DateTime)
     sent_success = Column(Integer)
     image_url = Column(String(255))
-    phone_numbers = Column(JSON)
     num_sent = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    
 
 class Project(Base):
     __tablename__ = 'tbl_project'
@@ -89,3 +91,11 @@ class Customer(Base):
     id = Column(Integer, primary_key=True)
     phone_numbers = Column(JSON)
     categories = Column(JSON)
+
+
+class CustomerCategory(Base):
+    __tablename__ = 'tbl_customer_category'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255))
+

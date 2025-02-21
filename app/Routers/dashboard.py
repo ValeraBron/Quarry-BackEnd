@@ -50,6 +50,7 @@ async def add_message(data: MainTableModel, email: Annotated[str, Depends(get_cu
         sent_timestamp=None,
         sent_success=0,  # default value
         image_url=data.image_url,
+        categories=data.categories,
         phone_numbers=data.phone_numbers,
         num_sent=0,  # default value
         created_at=data.created_at
@@ -69,6 +70,7 @@ async def update_message(data: MainTableModel, email: Annotated[str, Depends(get
         sent_timestamp=None,
         sent_success=0,  # default value
         image_url=data.image_url,
+        categories=data.categories,
         phone_numbers=data.phone_numbers,
         num_sent=0,  # default value
         created_at=data.created_at
@@ -96,8 +98,9 @@ async def get_message_table(db: Session = Depends(get_db)):
             "sent_timestamp": data.sent_timestamp,
             "sent_success": data.sent_success,
             "image_url": data.image_url,
-            "phone_numbers": data.phone_numbers,
-            "num_sent": data.num_sent
+            "categories": data.categories,
+            "num_sent": data.num_sent,
+            "phone_numbers": data.phone_numbers
         }
         for data in main_table_data
     ]
@@ -134,7 +137,7 @@ async def change_status(email: Annotated[str, Depends(get_current_user)], messag
 
 @router.post('/update-last-message')
 async def update_last_message(email: Annotated[str, Depends(get_current_user)], last_message: LastMessageModel, db: Session = Depends(get_db)):
-    print("message: ", last_message.message)
+    # print("message: ", last_message.message)
     await crud.update_project(db, last_message.project_id, last_message=last_message.message)
     return {"success": "true"}
 
@@ -334,3 +337,39 @@ async def get_customer_table(db: Session = Depends(get_db)):
     ]
     
     return customer_data_dicts
+
+@router.get('/customer-categories')
+async def get_customer_categories(db: Session = Depends(get_db)):
+    categories = await crud.get_customer_categories(db)
+    return categories
+
+@router.post('/add-customer-category')
+async def add_customer_category(data: dict, db: Session = Depends(get_db)):
+    print("dashboard - add customer category data: ", data)
+    name = data.get('name', '')
+    if not name:
+        raise HTTPException(
+            status_code=400,
+            detail="name is required"
+        )
+    await crud.add_customer_category(db, name)
+    return {"success": "true"}
+
+@router.post('/update-customer-category')
+async def update_customer_category(data: dict, customer_id: int, db: Session = Depends(get_db)):
+    print("dashboard - update customer category data: ", data)
+    await crud.update_customer_category(db, customer_id, data)
+    return {"success": "true"}
+
+@router.get('/delete-customer-category') 
+async def delete_customer_category(customer_id: int, db: Session = Depends(get_db)):
+    if not customer_id:
+        raise HTTPException(
+            status_code=400,
+            detail="customer_id is required"
+        )
+    await crud.delete_customer_category(db, customer_id)
+    return {"success": "true"}
+
+
+
