@@ -72,7 +72,7 @@ async def send_sms_via_phone_number(phone_number: str, sms: str, db: Session):
     # Optionally print the message SID
     return bool(message.sid)
 
-async def send_opt_in_phone(phone_number: str, db: Session):
+async def send_opt_in_phone(phone_number: str, phone_id: int, db: Session):
     twilioPhoneNumber, twilioAccountSID, twilioAuthToken = await getTwilioCredentials(db)
     
     # Initialize the Twilio client
@@ -95,24 +95,30 @@ async def send_opt_in_phone(phone_number: str, db: Session):
     #     to=phone_number
     # )
     
-    message = client.messages.create(
-        body=message_body,
-        # from_=from_phone_number,
-        messaging_service_sid = messaging_service_sid,
-        to=phone_number
-        # to=phone_number
-    )
+    asyncio.sleep(1)
+    await crud.update_opt_in_status_phone(db, phone_id, 2)
     # message = client.messages.create(
     #     body=message_body,
     #     # from_=from_phone_number,
     #     messaging_service_sid = messaging_service_sid,
-    #     to="+17735179242"
+    #     to=phone_number
+    #     # to=phone_number
     # )
-    
+    # # message = client.messages.create(
+    # #     body=message_body,
+    # #     # from_=from_phone_number,
+    # #     messaging_service_sid = messaging_service_sid,
+    # #     to="+17735179242"
+    # # )
+    # if(message.sid):
+    #     await crud.update_opt_in_status_phone(db, phone_id, 2)
+    # else:
+    #     await crud.update_opt_in_status_phone(db, phone_id, 3)
 
     # Optionally print the message SID
-    return bool(message.sid)
-    
+    # return bool(message.sid)
+    return True
+
 async def send(message_id: int, db: Session):
     message = await crud.get_message(db, message_id)
     sent_time = datetime.utcnow()

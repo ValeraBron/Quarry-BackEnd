@@ -127,15 +127,16 @@ async def update_opt_in_status_email(db: AsyncSession, message_id: int, opt_in_s
         return message
     return None
 
-async def update_opt_in_status_phone(db: AsyncSession, message_id: int, opt_in_status_phone: int):
-    stmt = select(Message).filter(Message.id == message_id)
+async def update_opt_in_status_phone(db: AsyncSession, phone_id: int, opt_in_status: int):
+    stmt = select(Phone).filter(Phone.id == phone_id)
     result = await db.execute(stmt)
-    message = result.scalar_one_or_none()
+    phone = result.scalar_one_or_none()
 
-    if message:
-        message.opt_in_status_phone = opt_in_status_phone
+    if phone:
+        phone.opt_in_status = opt_in_status
+        phone.back_timestamp = datetime.utcnow()
         await db.commit()
-        return message
+        return phone
     return None
 
 # Project CRUD Operations
@@ -620,7 +621,7 @@ async def get_phone_table(db: AsyncSession):
         SELECT 
             D.id as id, 
             D.phone_number as phone_number , 
-            E.optin_status as optin_status, 
+            E.status as optin_status, 
             D.sent_timestamp as sent_timestamp , 
             D.back_timestamp as back_timestamp, 
             GROUP_CONCAT(C.name SEPARATOR ', ') as categories

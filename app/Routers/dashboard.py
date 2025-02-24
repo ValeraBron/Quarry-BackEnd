@@ -217,12 +217,12 @@ async def set_opt_in_status_email(email: Annotated[str, Depends(get_current_user
     return True
 
 @router.get('/set-opt-in-status-phone')
-async def set_opt_in_status_phone(email: Annotated[str, Depends(get_current_user)], message_id: int, opt_in_status_phone: int, db: Session = Depends(get_db)):
-    print("dashboard - message_id: ", message_id)
-    message = await crud.get_message(db, message_id)
+async def set_opt_in_status_phone(email: Annotated[str, Depends(get_current_user)], phone_id: int, opt_in_status_phone: int, db: Session = Depends(get_db)):
+    print("dashboard - phone_id: ", phone_id)
+    phone = await crud.get_phone(db, phone_id)
     if opt_in_status_phone == 1:
-        await send_opt_in_phone(message.phone, db)
-    await crud.update_opt_in_status_phone(db, message_id, opt_in_status_phone)
+        await send_opt_in_phone(phone.phone_number, phone_id, db)
+    # await crud.update_opt_in_status_phone(db, phone_id, opt_in_status_phone)
     return True
 
 @router.get('/confirm-opt-in-status')
@@ -298,15 +298,19 @@ async def add_customer(data: dict, email: Annotated[str, Depends(get_current_use
     new_customer = await crud.insert_customer(db, phone_numbers, categories)
     
     # Create threads for phone creation and opt-in messages
-    phone_numbers = []
-    opt_in_tasks = []
+    phones = []
 
     # First create all phones
     for phone_number in new_customer.phone_numbers:
         new_phone = await crud.create_phone(db, phone_number, new_customer.id, opt_in_status=1)
-       
-    for phone_number in new_customer.phone_numbers:
-        await send_opt_in_phone(phone_number, db)
+        phones.append(new_phone)
+
+    for phone in phones:    
+        
+        if phone.opt_in_status == 1:
+            send_opt_in_phone(phone.phone_number, phone.id, db)
+            
+    
     return {"success": "true", "message": "Customer added successfully"}
 
 @router.post('/update-customer') 
