@@ -15,7 +15,7 @@ from app.Utils.regular_send import send_opt_in_phone
 from app.Utils.sendgrid import send_opt_in_email
 import app.Utils.database_handler as crud
 from app.Model.Settings import SettingsModel
-from app.Model.MainTable import MainTableModel
+from app.Model.MainTable import MainTableModel, PhoneModel
 from app.Model.ScrapingStatusModel import ScrapingStatusModel
 from app.Model.LastMessageModel import LastMessageModel
 from pydantic import EmailStr
@@ -37,6 +37,8 @@ router = APIRouter()
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
+
+
 
 @router.post('/add-message')
 async def add_message(data: MainTableModel, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
@@ -291,7 +293,20 @@ async def add_customer(data: dict, email: Annotated[str, Depends(get_current_use
             status_code=400,
             detail="categories must be a list"
         )
-    await crud.insert_customer(db, phone_numbers, categories)
+    
+    
+    new_customer = await crud.insert_customer(db, phone_numbers, categories)
+    
+    # Create threads for phone creation and opt-in messages
+    phone_numbers = []
+    opt_in_tasks = []
+
+    # First create all phones
+    for phone_number in new_customer.phone_numbers:
+        new_phone = await crud.create_phone(db, phone_number, new_customer.id, opt_in_status=1)
+       
+    for phone_number in new_customer.phone_numbers:
+        await send_opt_in_phone(phone_number, db)
     return {"success": "true", "message": "Customer added successfully"}
 
 @router.post('/update-customer') 
@@ -370,6 +385,87 @@ async def delete_customer_category(customer_id: int, db: Session = Depends(get_d
         )
     await crud.delete_customer_category(db, customer_id)
     return {"success": "true"}
+
+@router.get('/get-phone')
+async def get_phone_route(email: Annotated[str, Depends(get_current_user)], phone_id: int = None, phone_number: str = None, customer_id: int = None, db: Session = Depends(get_db)):
+    """Get phone record(s) by id, number or customer_id"""
+    if phone_id:
+        phone = await crud.get_phone(db, phone_id)
+        return phone if phone else {"error": "Phone not found"}
+    elif phone_number:
+        phone = await crud.get_phone_by_number(db, phone_number)
+        return phone if phone else {"error": "Phone not found"}
+    elif customer_id:
+        phones = await crud.get_phones_by_customer(db, customer_id)
+        return phones if phones else {"error": "No phones found for customer"}
+    else:
+        # Return all phones if no specific query
+        phones = await crud.get_phone_table(db)
+        return phones if phones else {"error": "No phones found"}
+
+@router.get('/phone-table')
+async def get_phone_table(db: Session = Depends(get_db)):
+    phones = await crud.get_phone_table(db)
+    return phones if phones else {"error": "No phones found"}
+
+@router.post('/add-phone')
+async def add_phone_route(phone: PhoneModel, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
+    """Add a new phone record"""
+    try:
+        new_phone = await crud.create_phone(
+            db,
+            phone_number=phone.phone_number,
+            customer_id=phone.customer_id,
+            opt_in_status=phone.opt_in_status
+        )
+        return new_phone
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+@router.post('/update-phone')
+async def update_phone_route(phone_id: int, phone: PhoneModel, email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
+    """Update an existing phone record"""
+    try:
+        updated_phone = await crud.update_phone(
+            db,
+            phone_id,
+            phone_number=phone.phone_number,
+            customer_id=phone.customer_id,
+            opt_in_status=phone.opt_in_status,
+            sent_timestamp=phone.sent_timestamp,
+            back_timestamp=phone.back_timestamp
+        )
+        if updated_phone:
+            return updated_phone
+        raise HTTPException(
+            status_code=404,
+            detail="Phone not found"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+@router.get('/delete-phone')
+async def delete_phone_route(email: Annotated[str, Depends(get_current_user)], phone_id: int, db: Session = Depends(get_db)):
+    """Delete a phone record"""
+    try:
+        success = await crud.delete_phone(db, phone_id)
+        if success:
+            return {"success": "true"}
+        raise HTTPException(
+            status_code=404,
+            detail="Phone not found"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
 
 
 

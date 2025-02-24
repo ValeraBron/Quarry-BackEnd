@@ -24,5 +24,14 @@ class MessageModel(BaseModel):
     categories: Optional[List[int]]
     
     
+# Add this class near the top with other models
+class PhoneModel(BaseModel):
+    phone_number: str
+    customer_id: int
+    opt_in_status: Optional[int] = None
+    sent_timestamp: Optional[datetime] = None
+    back_timestamp: Optional[datetime] = None
+    
+    
     
     

@@ -1,10 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
-from app.Model.DatabaseModel import Message, Project, MessageHistory, Report, User, Variables, Status, Customer, CustomerCategory
+from app.Model.DatabaseModel import Message, Project, MessageHistory, Report, User, Variables, Status, Customer, CustomerCategory, Phone
 from datetime import datetime
 from app.Model.MainTable import MainTableModel
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 # Utility Functions for Asynchronous Execution
 
@@ -443,6 +444,8 @@ async def update_sent_status(db: AsyncSession, message_id: int, sent_success: bo
         message.num_sent += 1
         await db.commit()
         await db.refresh(message)
+        return message
+    return None
 
 async def set_db_update_status(db: AsyncSession, status_id: int, db_update_status: int):
     stmt = select(Status).filter(Status.id == status_id)
@@ -530,6 +533,7 @@ async def insert_customer(db: AsyncSession, phone_numbers: list, categories: lis
         categories=categories  # List of categories
     )
     db.add(new_customer)
+    
     await db.commit()
     await db.refresh(new_customer)
     return new_customer
@@ -604,6 +608,103 @@ async def delete_customer_category(db: AsyncSession, customer_category_id: int):
 
     if category:
         await db.delete(category)
+        await db.commit()
+        return True
+    return False
+
+
+
+async def get_phone_table(db: AsyncSession):
+    # Build optimized SQL query with proper table aliases and explicit column selection
+    stmt = text("""
+        SELECT 
+            D.id as id, 
+            D.phone_number as phone_number , 
+            E.optin_status as optin_status, 
+            D.sent_timestamp as sent_timestamp , 
+            D.back_timestamp as back_timestamp, 
+            GROUP_CONCAT(C.name SEPARATOR ', ') as categories
+        FROM
+            (SELECT * FROM tbl_phone) D
+        LEFT JOIN
+            (SELECT * FROM tbl_customer) B ON D.customer_id = B.id 
+        JOIN 
+            (Select * FROM tbl_customer_category) C ON JSON_CONTAINS(B.categories, CAST(C.id AS JSON), '$') 
+        LEFT JOIN
+            (SELECT * FROM tbl_optin_status) E ON D.opt_in_status = E.id
+        GROUP BY
+            D.id
+    """)
+    
+    try:
+        # Execute query and fetch all results
+        result = await db.execute(stmt)
+        rows = result.all()
+        columns = result.keys()
+        # Convert result to list of dictionaries for easier handling
+        formatted_result = [
+            dict(zip(columns, row))
+            for row in rows
+        ]
+        return formatted_result
+        
+    except Exception as e:
+        # Log error and re-raise
+        print(f"Error executing phone table query: {str(e)}")
+        raise
+
+# Phone CRUD Operations
+async def get_phone(db: AsyncSession, phone_id: int):
+    """Get a phone record by ID"""
+    stmt = select(Phone).filter(Phone.id == phone_id)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+async def get_phone_by_number(db: AsyncSession, phone_number: str):
+    """Get a phone record by phone number"""
+    stmt = select(Phone).filter(Phone.phone_number == phone_number)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+async def get_phones_by_customer(db: AsyncSession, customer_id: int):
+    """Get all phone records for a customer"""
+    stmt = select(Phone).filter(Phone.customer_id == customer_id)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+async def create_phone(db: AsyncSession, phone_number: str, customer_id: int, opt_in_status: int = None):
+    """Create a new phone record"""
+    new_phone = Phone(
+        phone_number=phone_number,
+        customer_id=customer_id,
+        opt_in_status=opt_in_status
+    )
+    db.add(new_phone)
+    await db.commit()
+    await db.refresh(new_phone)
+    return new_phone
+
+async def update_phone(db: AsyncSession, phone_id: int, **kwargs):
+    """Update a phone record"""
+    stmt = select(Phone).filter(Phone.id == phone_id)
+    result = await db.execute(stmt)
+    phone = result.scalar_one_or_none()
+
+    if phone:
+        for key, value in kwargs.items():
+            setattr(phone, key, value)
+        await db.commit()
+        return phone
+    return None
+
+async def delete_phone(db: AsyncSession, phone_id: int):
+    """Delete a phone record"""
+    stmt = select(Phone).filter(Phone.id == phone_id)
+    result = await db.execute(stmt)
+    phone = result.scalar_one_or_none()
+
+    if phone:
+        await db.delete(phone)
         await db.commit()
         return True
     return False

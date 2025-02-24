@@ -99,3 +99,13 @@ class CustomerCategory(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
 
+class Phone(Base):
+    __tablename__ = 'tbl_phone'
+    
+    id = Column(Integer, primary_key=True)
+    phone_number = Column(String(20))
+    customer_id = Column(Integer, ForeignKey('tbl_customer.id'))
+    opt_in_status = Column(Integer, ForeignKey('tbl_customer_category.id'))
+    sent_timestamp = Column(DateTime)
+    back_timestamp = Column(DateTime)
+    
