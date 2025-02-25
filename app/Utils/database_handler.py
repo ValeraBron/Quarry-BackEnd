@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func
+from sqlalchemy import func, update
 from app.Model.DatabaseModel import Message, Project, MessageHistory, Report, User, Variables, Status, Customer, CustomerCategory, Phone
 from datetime import datetime
 from app.Model.MainTable import MainTableModel
@@ -30,8 +30,14 @@ async def get_main_table(db: AsyncSession):
     return result.all()
 
 async def get_message_num_sent(db: AsyncSession):
-    stmt = select(Message.id, Message.num_sent)#, Message.phone_numbers)
+    stmt = select(Message.id, Message.num_sent)
+    # .filter(
+    #     func.array_length(Message.phone_numbers, 1) < Message.num_sent,
+    #     Message.qued_timestamp < func.now()
+    # )
+    
     result = await db.execute(stmt)
+    print("num_sent result: ", result.all())
     return result.all()
 
 # Message CRUD Operations
@@ -65,24 +71,26 @@ async def insert_message(db: AsyncSession, item: MainTableModel):
     return new_message
 
 async def update_message(db: AsyncSession, message_id: int, item: MainTableModel):
+    
     stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
-    existing_message = result.scalar_one_or_none()
-    
-    if existing_message:
-        existing_message.last_message = item.last_message
-        existing_message.message_status = item.message_status
-        existing_message.qued_timestamp = item.qued_timestamp
-        existing_message.sent_timestamp = item.sent_timestamp
-        existing_message.sent_success = item.sent_success
-        existing_message.image_url = item.image_url
-        existing_message.categories = item.categories
-        existing_message.num_sent = item.num_sent
-        existing_message.created_at = item.created_at
-        await db.commit()
-        return existing_message
-    return None
+    message = result.scalar_one_or_none()
 
+    if message:
+        message.last_message = item.last_message
+        message.message_status = item.message_status
+        message.qued_timestamp = item.qued_timestamp
+        message.sent_timestamp = item.sent_timestamp
+        message.sent_success = item.sent_success
+        message.image_url = item.image_url
+        message.categories = item.categories
+        message.num_sent = item.num_sent
+        message.created_at = item.created_at
+        await db.commit()
+        await db.refresh(message)
+        return message
+    return None
+    
 async def delete_message(db: AsyncSession, message_id: int):
     stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)
@@ -139,6 +147,17 @@ async def update_opt_in_status_phone(db: AsyncSession, phone_id: int, opt_in_sta
         return phone
     return None
 
+async def update_opt_in_status_sent_timestamp(db: AsyncSession, phone_id: int):
+    stmt = select(Phone).filter(Phone.id == phone_id)
+    result = await db.execute(stmt)
+    phone = result.scalar_one_or_none()
+
+    if phone:
+        phone.sent_timestamp = datetime.utcnow()
+        await db.commit()
+        await db.refresh(phone)
+        return phone
+    return None
 # Project CRUD Operations
 async def get_project(db: AsyncSession, project_id: int):
     stmt = select(Project).filter(Project.id == project_id)
@@ -710,5 +729,23 @@ async def delete_phone(db: AsyncSession, phone_id: int):
         return True
     return False
     
+async def get_optin_message(db: AsyncSession):
+    """Get the opt-in message from the Variables table"""
+    stmt = select(Variables)
+    result = await db.execute(stmt)
+    variables = result.scalar_one_or_none()
+    
+    print("variables: ", variables.optin_message)
+    if variables:
+        return variables.optin_message
+    return None
+
+async def update_optin_message(db: AsyncSession, new_message: str):
+    """Update the opt-in message in the Variables table"""
+    stmt = update(Variables).values(optin_message=new_message)
+    await db.execute(stmt)
+    await db.commit()
+    return None
+
 
 

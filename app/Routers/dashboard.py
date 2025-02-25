@@ -225,6 +225,15 @@ async def set_opt_in_status_phone(email: Annotated[str, Depends(get_current_user
     # await crud.update_opt_in_status_phone(db, phone_id, opt_in_status_phone)
     return True
 
+@router.post('/send-optin-messages')
+async def send_optin_messages(payload: list[dict], db: Session = Depends(get_db)):
+    print("dashboard - payload: ", payload)
+    for phone in payload:
+        phone_id = phone.get('id')
+        phone_number = phone.get('phone_number')
+        await send_opt_in_phone(phone_number, phone_id, db)
+    return {"All send": "true"}
+
 @router.get('/confirm-opt-in-status')
 async def set_opt_in_status(message_id: int, response: str, db: Session = Depends(get_db)):
     print("dashboard - confirm-opt-in-status - message_id: ", message_id)
@@ -306,9 +315,7 @@ async def add_customer(data: dict, email: Annotated[str, Depends(get_current_use
         phones.append(new_phone)
 
     for phone in phones:    
-        
-        if phone.opt_in_status == 1:
-            send_opt_in_phone(phone.phone_number, phone.id, db)
+        send_opt_in_phone(phone.phone_number, phone.id, db)
             
     
     return {"success": "true", "message": "Customer added successfully"}
@@ -470,6 +477,19 @@ async def delete_phone_route(email: Annotated[str, Depends(get_current_user)], p
             status_code=400,
             detail=str(e)
         )
+
+
+
+@router.get('/get-optin-message')
+async def get_optin_message(db: Session = Depends(get_db)):
+    message = await crud.get_optin_message(db)
+    return message
+
+@router.post('/update-optin-message')
+async def update_optin_message(data: dict, db: Session = Depends(get_db)):
+    print("dashboard - update optin message data: ", data)
+    await crud.update_optin_message(db, data.get('optin_message'))
+    return {"success": "true"}
 
 
 

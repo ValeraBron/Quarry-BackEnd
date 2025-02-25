@@ -70,7 +70,7 @@ class Variables(Base):
     twilioAuthToken = Column(String(255))
     sendgridEmail = Column(String(255))
     sendgridApiKey = Column(String(255))
-    prompts = Column(Text)
+    optin_message = Column(Text)
     timer = Column(Integer)
 
 class Status(Base):

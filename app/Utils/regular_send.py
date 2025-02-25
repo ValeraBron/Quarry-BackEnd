@@ -95,8 +95,10 @@ async def send_opt_in_phone(phone_number: str, phone_id: int, db: Session):
     #     to=phone_number
     # )
     
+    await crud.update_opt_in_status_sent_timestamp(db, phone_id)
     asyncio.sleep(1)
     await crud.update_opt_in_status_phone(db, phone_id, 2)
+    
     # message = client.messages.create(
     #     body=message_body,
     #     # from_=from_phone_number,
