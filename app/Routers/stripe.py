@@ -42,7 +42,7 @@ async def checkout(model: StripeModel, db: Session = Depends(get_db)):
             success_url= YOUR_DOMAIN + "/phones",
             cancel_url= YOUR_DOMAIN + "/phones",
         )
-        print("checkout session:", checkout_session)
+        # print("checkout session:", checkout_session)
         # await crud.update_usertype(db, model.email, 1)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
