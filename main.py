@@ -12,6 +12,7 @@ from app.Utils.regular_send import send_all_sms
 from app.Routers import dashboard
 from app.Routers import auth
 from app.Routers import socket
+from app.Routers import stripe
 import app.Utils.database_handler as crud
 from database import AsyncSessionLocal, create_tables
 
@@ -33,6 +34,7 @@ app.add_middleware(
 app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(socket.router, prefix="/api/v1")
+app.include_router(stripe.router, prefix="/api/v1")
 
 @app.get("/")
 async def health_checker():

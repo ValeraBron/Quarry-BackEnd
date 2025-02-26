@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/token")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -46,8 +46,9 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 # async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)):
-async def get_current_user(db: Session = Depends(get_db)):
-    return "isachenkoanton28@gmail.com"
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)):
+    # return "isachenkoanton28@gmail.com"
+    print("token: ", token)
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -55,16 +56,19 @@ async def get_current_user(db: Session = Depends(get_db)):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-        if email is None:
+        user_name = payload.get("sub")
+        print("decode user_name: ", user_name)
+        if user_name is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
     
-    user = await crud.get_user_by_email(db, email)  # This function should be defined in your crud.py
-    if user is None:
-        raise credentials_exception
-    return user
+    # user = await crud.get_user_by_email(db, email)  # This function should be defined in your crud.py
+    # print("user: ", user)
+    # if user is None:
+    #     raise credentials_exception
+    # return user
+    return user_name
 
 # async def get_current_user(db: Session = Depends(get_db)):
 #     credentials_exception = HTTPException(

@@ -2,12 +2,18 @@ from fastapi import APIRouter, Form, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from database import AsyncSessionLocal
-from app.Utils.Auth import authenticate_user, create_access_token, get_password_hash
+from app.Utils.Auth import authenticate_user, create_access_token, get_password_hash, get_current_user
 from app.Utils.sendgrid import send_mail, send_approve_email
 import secrets
 import os
 
+from app.Model.AuthModel import SignInModel, SignUpModel
+
 import app.Utils.database_handler as crud
+import app.Utils.Auth as Auth
+
+from typing import Annotated
+
 
 from dotenv import load_dotenv
 
@@ -25,10 +31,9 @@ async def signin_for_access_token(email: str = Form(...), password: str = Form(.
     # print("sigin user: ", user.username)
     if not user:
         return JSONResponse(content={"message": "Email or Password are incorrect!"}, status_code=401)
-    # if user.approved == 0:
-    #     return JSONResponse(content={"message": "This email is not approved!"}, status_code=400)
+
     access_token = create_access_token(data={"sub": user.username})  # Assuming 'user' is an object
-    user_to_return = {'email': user.username, 'hashed_password': user.password}
+    user_to_return = {'user_name': user.username}
     return {"access_token": access_token, "token_type": "bearer", "user": user_to_return}
 
 @router.post("/signup")
@@ -75,3 +80,21 @@ async def change_password(token: str = Form(...), email: str = Form(...), new_pa
         password_in_db = get_password_hash(new_password)
         await crud.update_user(db, user.id, password=password_in_db, forgot_password_token=secrets.token_urlsafe())  # Reset the token
         return JSONResponse(content={"success": True}, status_code=200)
+    
+@router.get("/current-user")
+async def get_user(email: Annotated[str, Depends(get_current_user)], db: Session = Depends(get_db)):
+    user = await crud.get_user_by_email(db, email)
+    
+    return user
+
+@router.post("/token")
+async def signin_for_access_token(model: SignInModel, db: Session = Depends(get_db)):
+    print("email: ", model.email)
+    user = await Auth.authenticate_user(db, model.email, model.password)  # This function needs to be updated to use db
+    if not user:
+        return JSONResponse(content={"message": "Email or Password are incorrect!"}, status_code=401)
+    print("sigin user: ", user.username)
+
+    access_token = Auth.create_access_token(data={"sub": user.username})  # Assuming 'user' is an object
+    user_to_return = {'user_name': user.username}
+    return {"access_token": access_token, "token_type": "bearer", "user": user_to_return}
