@@ -96,16 +96,21 @@ async def send_opt_in_phone(phone_number: str, phone_id: int, db: Session):
     # )
     
     await crud.update_opt_in_status_sent_timestamp(db, phone_id)
-    asyncio.sleep(1)
-    await crud.update_opt_in_status_phone(db, phone_id, 2)
+    # asyncio.sleep(1)
     
-    # message = client.messages.create(
-    #     body=message_body,
-    #     # from_=from_phone_number,
-    #     messaging_service_sid = messaging_service_sid,
-    #     to=phone_number
-    #     # to=phone_number
-    # )
+    message = client.messages.create(
+        body=message_body,
+        # from_=from_phone_number,
+        messaging_service_sid = messaging_service_sid,
+        to=phone_number
+        # to=phone_number
+    )
+    
+    if(message.sid):
+        await crud.update_opt_in_status_phone(db, phone_id, 2)
+    else:
+        await crud.update_opt_in_status_phone(db, phone_id, 3)
+    
     # # message = client.messages.create(
     # #     body=message_body,
     # #     # from_=from_phone_number,
@@ -130,9 +135,9 @@ async def send(message_id: int, db: Session):
         all_sent_success = True
         for phone_number in phone_numbers:
             try:
-                # phone_sent_success = await send_sms_via_phone_number(phone_number, message.last_message, db)
-                await asyncio.sleep(1)  # Sleep for 1 second between sends to avoid rate limiting
-                phone_sent_success = True
+                phone_sent_success = await send_sms_via_phone_number(phone_number, message.last_message, db)
+                # await asyncio.sleep(1)  # Sleep for 1 second between sends to avoid rate limiting
+                # phone_sent_success = True
                 print("phone_sent_success: ", phone_sent_success)
                 await crud.update_sent_status(db, message_id, phone_sent_success)
                 if not phone_sent_success:

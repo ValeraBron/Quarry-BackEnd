@@ -40,7 +40,7 @@ async def websocket_endpoint(websocket: WebSocket, db: AsyncSession = Depends(ge
    
     try:
         print("websocket_endpoint message accept")
-         
+        prev_data = []
         while True:
             # Query the database
             main_table_data = None
@@ -48,11 +48,12 @@ async def websocket_endpoint(websocket: WebSocket, db: AsyncSession = Depends(ge
                 main_table_data = await get_message_num_sent(session, datetime.now())
             
             if main_table_data:
-                print("main_table_data: ", main_table_data)
+                # print("main_table_data: ", main_table_data)
+                # print("prev_data: ", prev_data)
                 
                 if(prev_data != main_table_data):
                     prev_data = main_table_data    # Convert data to a list of dictionaries
-                
+
                     data_list = [
                         {
                             "id": item.id,
