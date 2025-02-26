@@ -34,7 +34,7 @@ app.add_middleware(
 app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(socket.router, prefix="/api/v1")
-app.include_router(stripe.router, prefix="/api/v1")
+app.include_router(stripe.router, prefix="/api/stripe")
 
 @app.get("/")
 async def health_checker():

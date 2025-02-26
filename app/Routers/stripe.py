@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from database import AsyncSessionLocal
 import app.Utils.database_handler as crud
 from app.Utils.Auth import get_current_user
+from app.Utils.database_handler import update_usertype
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -39,8 +40,8 @@ async def checkout(model: StripeModel, db: Session = Depends(get_db)):
             
             mode="subscription",
             
-            success_url= YOUR_DOMAIN + "/phones",
-            cancel_url= YOUR_DOMAIN + "/phones",
+            success_url= YOUR_DOMAIN + "/phones?success=true",
+            cancel_url= YOUR_DOMAIN + "/phones?success=false",
         )
         # print("checkout session:", checkout_session)
         # await crud.update_usertype(db, model.email, 1)
@@ -62,7 +63,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     except (ValueError, stripe.error.SignatureVerificationError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    print("event:", event)
+    # print("event:", event)
     if event['type'] == 'customer.subscription.created':
         subscription = event['data']['object']
         await handle_subscription_created(db, subscription)
@@ -75,11 +76,11 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         subscription = event['data']['object']
         await handle_subscription_deleted(db, subscription)
         
-    elif event['type'] == 'customer.subscription.succeeded':
+    elif event['type'] == 'invoice.payment_succeeded':
         invoice = event['data']['object']
         await handle_subscription_succeeded(db, invoice)
         
-    elif event['type'] == 'customer.subscription.failed':
+    elif event['type'] == 'invoice.payment_failed':
         invoice = event['data']['object']
         await handle_subscription_failed(db, invoice)
         
@@ -116,12 +117,12 @@ async def handle_subscription_succeeded(db: Session, invoice):
     line_item = invoice['lines']['data'][0]
     plan_id = line_item['plan']['id']
     email = invoice['customer_email']
-    print("Invoice:", invoice)
+    # print("Invoice:", invoice)
     
-    user = await crud.get_user_by_email(db, email)
+    # user = await crud.get_user_by_email(db, email)
     
     if plan_id == Base_Price_Id:
-        await crud.update_usertype(db, user, 1)
+        await crud.update_usertype(db, email, 1)
     
     print('Payment successful:', invoice)
 

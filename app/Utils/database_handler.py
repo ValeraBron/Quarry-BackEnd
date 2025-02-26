@@ -749,3 +749,9 @@ async def update_optin_message(db: AsyncSession, new_message: str):
 
 
 
+async def update_usertype(db: AsyncSession, email: str, user_type: int):
+    stmt = update(User).values(user_type=user_type).where(User.username == email)
+    await db.execute(stmt)
+    await db.commit()
+    return None
+
