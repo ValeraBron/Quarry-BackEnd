@@ -29,15 +29,13 @@ async def get_main_table(db: AsyncSession):
     result = await db.execute(stmt)
     return result.all()
 
-async def get_message_num_sent(db: AsyncSession):
-    stmt = select(Message.id, Message.num_sent)
-    # .filter(
-    #     func.array_length(Message.phone_numbers, 1) < Message.num_sent,
-    #     Message.qued_timestamp < func.now()
-    # )
+async def get_message_num_sent(db: AsyncSession, current_time: datetime):
+    stmt = select(Message.id, Message.num_sent).filter(
+        func.json_length(Message.phone_numbers) > Message.num_sent,
+        Message.qued_timestamp < current_time
+    )
     
     result = await db.execute(stmt)
-    print("num_sent result: ", result.all())
     return result.all()
 
 # Message CRUD Operations
