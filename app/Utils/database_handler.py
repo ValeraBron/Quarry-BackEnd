@@ -88,7 +88,13 @@ async def update_message(db: AsyncSession, message_id: int, item: MainTableModel
         await db.refresh(message)
         return message
     return None
-    
+
+async def update_message_status(db: AsyncSession, message_id: int, status: int):
+    stmt = update(Message).filter(Message.id == message_id).values(message_status=status)
+    await db.execute(stmt)
+    await db.commit()
+    return True
+
 async def delete_message(db: AsyncSession, message_id: int):
     stmt = select(Message).filter(Message.id == message_id)
     result = await db.execute(stmt)

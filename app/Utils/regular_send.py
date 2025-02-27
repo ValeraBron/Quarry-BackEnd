@@ -10,6 +10,8 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
+
+
 load_dotenv()
 
 # Dependency to get the database session
@@ -128,6 +130,7 @@ async def send_opt_in_phone(phone_number: str, phone_id: int, db: Session):
 
 async def send(message_id: int, db: Session):
     message = await crud.get_message(db, message_id)
+    await crud.update_message_status(db, message.id, 1)
     sent_time = datetime.utcnow()
     phone_numbers = message.phone_numbers
 
@@ -135,9 +138,10 @@ async def send(message_id: int, db: Session):
         all_sent_success = True
         for phone_number in phone_numbers:
             try:
-                phone_sent_success = await send_sms_via_phone_number(phone_number, message.last_message, db)
-                # await asyncio.sleep(1)  # Sleep for 1 second between sends to avoid rate limiting
-                # phone_sent_success = True
+                # print("phone_number: ", phone_number)
+                # phone_sent_success = await send_sms_via_phone_number(phone_number, message.last_message, db)
+                await asyncio.sleep(1)  # Sleep for 1 second between sends to avoid rate limiting
+                phone_sent_success = True
                 print("phone_sent_success: ", phone_sent_success)
                 await crud.update_sent_status(db, message_id, phone_sent_success)
                 if not phone_sent_success:
@@ -152,18 +156,51 @@ async def send(message_id: int, db: Session):
 
     return all_sent_success
 
-async def send_all_sms(db: Session):
+async def send_sms():
     # Create thread for messages with status 1 (queued)
+    
     try:
-        messages = await crud.get_main_table(db)
-        for message in messages:
-            if message.message_status == 1 and message.num_sent < len(message.phone_numbers):
+        async with AsyncSessionLocal() as session:
+            messages = await crud.get_main_table(session)
+            current_time = datetime.utcnow()
+            # print("messages: ", messages)
+            for message in messages:
+                if message.message_status == 0 and message.qued_timestamp <= current_time:
+                    print("send message: ", message.id)
+                    # Create task to send message
+                    await send(message.id, session)
+                    # Update status to queued (1)
                 
-                message.message_status = 2
-                await crud.update_message_status(db, message.id, 2)
                 
-                print(f"Sending SMS to {message.id}")
-                await send(message.id, db)
     except Exception as e:
-        print(f"Error in send_sms_thread: {e}")
-                
+        print(f"Error in send_all_sms: {e}")
+        return False
+    
+    return True
+            
+#     async def schedule_send_sms(message_id: int, run_time: datetime, db: Session):
+#         try:
+#             print("schedule_send_sms")
+#             loop.create_task(run_at(run_time), send(message_id, db))
+#         except Exception as e:
+#             print(f"Error in schedule_send_sms: {e}")
+    
+
+            
+#     try:
+#         messages = await crud.get_main_table(db)
+#         for message in messages:
+#             if message.message_status == 0:
+#                 if message.qued_timestamp > datetime.utcnow():
+#                     if(message.qued_timestamp - datetime.utcnow().total_seconds() < 86400):
+#                         await schedule_send_sms(message.id, message.qued_timestamp, db)
+#                         await crud.update_message_status(db, message.id, 1)
+#                 else:
+#                     await send(message.id, db)
+
+#     except Exception as e:
+#         print(f"Error in send_sms_thread: {e}")
+
+
+    
+

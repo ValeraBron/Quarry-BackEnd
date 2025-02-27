@@ -6,9 +6,12 @@ import logging
 import logging.config
 import logging
 import asyncio
+import threading
+import time
 
 from app.Utils.regular_update import job
-from app.Utils.regular_send import send_all_sms
+from app.Utils.regular_send import send_sms
+
 from app.Routers import dashboard
 from app.Routers import auth
 from app.Routers import socket
@@ -40,12 +43,17 @@ app.include_router(stripe.router, prefix="/api/stripe")
 async def health_checker():
     return {"status": "success"}
 
-# @app.on_event("startup")
-# async def startup_event():
-#     # Run send_all_sms when server starts
-#     while True:
-#         await asyncio.sleep(2)  # Wait 60 seconds between runs
-#         await send_all_sms()
+# Add this function to run send_sms in a loop
+def send_sms_thread():
+    while True:
+        time.sleep(5)  # Sleep for 1 minute
+        asyncio.run(send_sms())
+
+@app.on_event("startup")
+async def startup_event():
+    # Start send_sms in a background thread
+    sms_thread = threading.Thread(target=send_sms_thread, daemon=True)
+    sms_thread.start()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

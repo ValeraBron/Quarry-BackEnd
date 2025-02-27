@@ -72,7 +72,7 @@ async def websocket_endpoint(websocket: WebSocket, db: AsyncSession = Depends(ge
                
             
             # Reduce sleep time for more frequent updates
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
     except Exception as e:
         print(f"Connection closed: {e}")
     finally:
