@@ -139,17 +139,11 @@ async def update_opt_in_status_email(db: AsyncSession, message_id: int, opt_in_s
         return message
     return None
 
-async def update_opt_in_status_phone(db: AsyncSession, phone_id: int, opt_in_status: int):
-    stmt = select(Phone).filter(Phone.id == phone_id)
-    result = await db.execute(stmt)
-    phone = result.scalar_one_or_none()
-
-    if phone:
-        phone.opt_in_status = opt_in_status
-        phone.back_timestamp = datetime.utcnow()
-        await db.commit()
-        return phone
-    return None
+async def update_opt_in_status_phone(db: AsyncSession, phone_number: str, opt_in_status: int):
+    stmt = update(Phone).filter(Phone.phone_number == phone_number).values(opt_in_status=opt_in_status, back_timestamp=datetime.utcnow())
+    await db.execute(stmt)
+    await db.commit()
+    return True
 
 async def update_opt_in_status_sent_timestamp(db: AsyncSession, phone_id: int):
     stmt = select(Phone).filter(Phone.id == phone_id)
