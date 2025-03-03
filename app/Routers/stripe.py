@@ -22,7 +22,7 @@ stripe.api_key = os.getenv('STRIPE_API_KEY')
 
 YOUR_DOMAIN = 'http://localhost:5173'
 
-Base_Price_Id = "price_1Q2EPWAZfjTlvHBok0I7tr1x"
+Base_Price_Id = "price_1Qx8rNAZfjTlvHBoUsFN18kl"
 endpoint_secret = 'whsec_nu25GaHsnPVts5TUOEOReptzASV1mi1i'
 # Dependency to get the database session
 async def get_db():

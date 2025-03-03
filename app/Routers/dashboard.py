@@ -311,11 +311,11 @@ async def add_customer(data: dict, email: Annotated[str, Depends(get_current_use
 
     # First create all phones
     for phone_number in new_customer.phone_numbers:
-        new_phone = await crud.create_phone(db, phone_number, new_customer.id, opt_in_status=1)
+        new_phone = await crud.create_phone(db, phone_number, new_customer.id, opt_in_status=0)
         phones.append(new_phone)
 
     for phone in phones:    
-        send_opt_in_phone(phone.phone_number, phone.id, db)
+        await send_opt_in_phone(phone.phone_number, phone.id, db)
             
     
     return {"success": "true", "message": "Customer added successfully"}
@@ -490,6 +490,94 @@ async def update_optin_message(data: dict, db: Session = Depends(get_db)):
     print("dashboard - update optin message data: ", data)
     await crud.update_optin_message(db, data.get('optin_message'))
     return {"success": "true"}
+
+
+@router.post("/confirm-optin-response")
+async def confirm_optin_response(
+    From: str = Form(...),  # Twilio sends phone number as 'From'
+    Body: str = Form(...),  # Twilio sends message content as 'Body'
+    db: Session = Depends(get_db)
+):
+    phone_number = From
+    response = Body.strip().lower()
+    
+    print("dashboard - confirm optin response - phone_number: ", phone_number)
+    optin_thesaurus = ["accept"] #, "opt-in", "take part", "participate", "come in", "tune in", "associate", "go into", "latch on", "get in on", "take an interest", "optin"]
+    optout_thesaurus = ["stop"] #, "withdraw", "leave", "pull out",  "drop out", "back out", "secede", "cop out", "absent", "optout", "opt out", "opt-out", "get out"]
+    
+    accept_response = """
+            <?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+            <Message>You are successfully subscribed to Del Mar</Message>
+        </Response>
+    """
+    reject_response = """
+            <?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+            <Message>You are successfully unsubscribed from Del Mar</Message>
+        </Response>
+    """
+    resp = MessagingResponse()
+    
+    if any(word in response.lower() for word in optin_thesaurus):
+        # accept
+        await crud.update_opt_in_status_phone(db, phone_number, 3)
+        resp.message("You are successfully subscribed to Del Mar")
+
+    elif any(word in response.lower() for word in optout_thesaurus):
+        # reject
+        await crud.update_opt_in_status_phone(db, phone_number, 4)
+        resp.message("You are successfully unsubscribed from Del Mar")
+    
+    else:
+        resp.message("Invalid response, please try again with 'Accept' or 'Stop'.")
+        
+    return str(resp)
+
+
+
+@router.post("/confirm-optin-response")
+async def confirm_optin_response(
+    From: str = Form(...),  # Twilio sends phone number as 'From'
+    Body: str = Form(...),  # Twilio sends message content as 'Body'
+    db: Session = Depends(get_db)
+):
+    phone_number = From
+    response = Body.strip().lower()
+    
+    print("dashboard - confirm optin response - phone_number: ", phone_number)
+    optin_thesaurus = ["accept"] #, "opt-in", "take part", "participate", "come in", "tune in", "associate", "go into", "latch on", "get in on", "take an interest", "optin"]
+    optout_thesaurus = ["stop"] #, "withdraw", "leave", "pull out",  "drop out", "back out", "secede", "cop out", "absent", "optout", "opt out", "opt-out", "get out"]
+    
+    accept_response = """
+            <?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+            <Message>You are successfully subscribed to Del Mar</Message>
+        </Response>
+    """
+    reject_response = """
+            <?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+            <Message>You are successfully unsubscribed from Del Mar</Message>
+        </Response>
+    """
+    resp = MessagingResponse()
+    
+    if any(word in response.lower() for word in optin_thesaurus):
+        # accept
+        await crud.update_opt_in_status_phone(db, phone_number, 3)
+        resp.message("You are successfully subscribed to Del Mar")
+
+    elif any(word in response.lower() for word in optout_thesaurus):
+        # reject
+        await crud.update_opt_in_status_phone(db, phone_number, 4)
+        resp.message("You are successfully unsubscribed from Del Mar")
+    
+    else:
+        resp.message("Invalid response, please try again with 'Accept' or 'Stop'.")
+        
+    return str(resp)
+
 
 
 @router.get('/confirm-optin-response')

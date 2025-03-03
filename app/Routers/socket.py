@@ -41,7 +41,7 @@ async def websocket_endpoint(websocket: WebSocket, db: AsyncSession = Depends(ge
     try:
         print("websocket_endpoint message accept")
         prev_data = []
-        while True:
+        while True and websocket.client_state == WebSocket.OPEN:
             # Query the database
             main_table_data = None
             async with AsyncSessionLocal() as session:

@@ -82,9 +82,7 @@ async def send_opt_in_phone(phone_number: str, phone_id: int, db: Session):
 
     messaging_service_sid = "MGbcc5781c1f66253ace25265ebf172701"
     
-    message_body = """
-        Welcome to DEL MAR Builders! Receive weekly updates about your project by replying START. Standard message and data rates may apply. Reply STOP to unsubscribe.
-    """
+    message_body = crud.get_optin_message
     from_phone_number = '+17082486451'  # Twilio phone number
     # from_phone_number = '+1 708 248 6451'  # Twilio phone number
     print("twilio: ", message_body, from_phone_number)
@@ -102,16 +100,16 @@ async def send_opt_in_phone(phone_number: str, phone_id: int, db: Session):
     
     message = client.messages.create(
         body=message_body,
-        # from_=from_phone_number,
+        from_=from_phone_number,
         messaging_service_sid = messaging_service_sid,
         to=phone_number
         # to=phone_number
     )
     
     if(message.sid):
-        await crud.update_opt_in_status_phone(db, phone_number, 2)
+        await crud.update_opt_in_status_phone(db, phone_id, 1)
     else:
-        await crud.update_opt_in_status_phone(db, phone_number, 3)
+        await crud.update_opt_in_status_phone(db, phone_id, 4)
     
     # # message = client.messages.create(
     # #     body=message_body,
