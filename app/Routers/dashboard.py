@@ -577,35 +577,3 @@ async def confirm_optin_response(
         resp.message("Invalid response, please try again with 'Accept' or 'Stop'.")
         
     return str(resp)
-
-
-
-@router.get('/confirm-optin-response')
-async def confirm_optin_response(phone_number: str, response: str, db: Session = Depends(get_db)):
-    print("dashboard - confirm optin response - phone_number: ", phone_number)
-    optin_thesaurus = ["accept", "opt-in", "take part", "participate", "come in", "tune in", "associate", "go into", "latch on", "get in on", "take an interest", "optin"]
-    optout_thesaurus = ["reject", "withdraw", "leave", "pull out",  "drop out", "back out", "secede", "cop out", "absent", "optout", "opt out", "opt-out", "get out"]
-    
-    accept_response = """
-            <?xml version="1.0" encoding="UTF-8"?>
-        <Response>
-            <Message>You are successfully subscribed to Del Mar</Message>
-        </Response>
-    """
-    reject_response = """
-            <?xml version="1.0" encoding="UTF-8"?>
-        <Response>
-            <Message>You are successfully unsubscribed from Del Mar</Message>
-        </Response>
-    """
-    resp = MessagingResponse()
-    
-    if any(word in response.lower() for word in optin_thesaurus):
-        # accept
-        await crud.update_opt_in_status_phone(db, phone_number, 2)
-        resp.message("You are successfully subscribed to Del Mar")
-
-    elif any(word in response.lower() for word in optout_thesaurus):
-        # reject
-        await crud.update_opt_in_status_phone(db, phone_number, 3)
-        resp.message("You are successfully unsubscribed from Del Mar")
