@@ -293,7 +293,7 @@ async def get_user_by_email(db: AsyncSession, email: str):
     return result.scalar_one_or_none()
 
 async def create_user(db: AsyncSession, username: str, password: str, forgot_password_token: str, approved: int):
-    new_user = User(username=username, password=password, forgot_password_token=forgot_password_token, approved=approved)
+    new_user = User(username=username, password=password, forgot_password_token=forgot_password_token, approved=approved, user_type = 0, sms_balance = 500)
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
@@ -329,7 +329,7 @@ async def get_variables(db: Session):
     return result.scalar_one_or_none()
 
 async def create_variables(db: AsyncSession):
-    new_variables = Variables(openAIKey="", twilioPhoneNumber="", twilioAccountSID="", twilioAuthToken="", sendgridEmail="", sendgridApiKey="", prompts="", timer=0)
+    new_variables = Variables(openAIKey="", twilioPhoneNumber="", twilioAccountSID="", twilioAuthToken="", sendgridEmail="", sendgridApiKey="", optin_message="", timer=0)
     db.add(new_variables)
     await db.commit()
     await db.refresh(new_variables)
@@ -752,4 +752,18 @@ async def update_usertype(db: AsyncSession, email: str, user_type: int):
     await db.execute(stmt)
     await db.commit()
     return None
+
+
+async def update_sms_balance(db: AsyncSession, email: str, add_balance: int):
+    prev_balance = await get_sms_balance(db, email)
+    stmt = update(User).values(sms_balance=prev_balance + add_balance).where(User.username == email)
+    await db.execute(stmt)
+    await db.commit()
+    return None
+
+async def get_sms_balance(db: AsyncSession, email: str):
+    stmt = select(User).where(User.username == email)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    return user.sms_balance
 

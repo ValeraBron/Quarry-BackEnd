@@ -171,7 +171,7 @@ async def send_sms():
                 
                 
     except Exception as e:
-        print(f"Error in send_all_sms: {e}")
+        print(f"Error in send_sms_scheduling: {e}")
         return False
     
     return True

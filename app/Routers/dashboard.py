@@ -302,14 +302,11 @@ async def add_customer(data: dict, email: Annotated[str, Depends(get_current_use
             status_code=400,
             detail="categories must be a list"
         )
-    
-    
     new_customer = await crud.insert_customer(db, phone_numbers, categories)
-    
     # Create threads for phone creation and opt-in messages
     phones = []
-
     # First create all phones
+    
     for phone_number in new_customer.phone_numbers:
         new_phone = await crud.create_phone(db, phone_number, new_customer.id, opt_in_status=0)
         phones.append(new_phone)
@@ -317,7 +314,6 @@ async def add_customer(data: dict, email: Annotated[str, Depends(get_current_use
     for phone in phones:    
         await send_opt_in_phone(phone.phone_number, phone.id, db)
             
-    
     return {"success": "true", "message": "Customer added successfully"}
 
 @router.post('/update-customer') 

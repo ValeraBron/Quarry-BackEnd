@@ -60,6 +60,7 @@ class User(Base):
     forgot_password_token = Column(String(255))
     approved = Column(Integer)
     user_type = Column(Integer, default = 0)
+    sms_balance = Column(Integer, default = 0)
 
 class Variables(Base):
     __tablename__ = 'tbl_variables'

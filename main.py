@@ -5,9 +5,8 @@ import uvicorn
 import logging
 import logging.config
 import logging
-import asyncio
 import threading
-import time
+
 
 from app.Utils.regular_update import job
 from app.Utils.regular_send import send_sms
@@ -17,7 +16,6 @@ from app.Routers import auth
 from app.Routers import socket
 from app.Routers import stripe
 import app.Utils.database_handler as crud
-from database import AsyncSessionLocal, create_tables
 
 app = FastAPI()
 
@@ -45,9 +43,10 @@ async def health_checker():
 
 # Add this function to run send_sms in a loop
 def send_sms_thread():
-    while True:
-        time.sleep(5)  # Sleep for 1 minute
-        asyncio.run(send_sms())
+    print("Sending SMS")
+    # while True:
+    #     time.sleep(5)  # Sleep for 1 minute
+    #     asyncio.run(send_sms())
 
 @app.on_event("startup")
 async def startup_event():

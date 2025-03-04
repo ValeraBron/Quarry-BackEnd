@@ -22,8 +22,9 @@ stripe.api_key = os.getenv('STRIPE_API_KEY')
 
 YOUR_DOMAIN = 'http://localhost:5173'
 
-Base_Price_Id = "price_1Qx8rNAZfjTlvHBoUsFN18kl"
-endpoint_secret = 'whsec_nu25GaHsnPVts5TUOEOReptzASV1mi1i'
+Base_Price_Id = "price_1QyZ7MAZfjTlvHBoDu7f7W8X"
+endpoint_secret = 'whsec_XPGOeNd1WYFhtn4ICi5rdnUd06yNnzbP'
+endpoint_Id =  'we_1Qyq0LAZfjTlvHBoOZBPYG7W'
 # Dependency to get the database session
 async def get_db():
     async with AsyncSessionLocal() as session:
@@ -33,7 +34,7 @@ async def get_db():
 @router.post("/checkout")
 async def checkout(model: StripeModel, db: Session = Depends(get_db)):
     try:
-        print("model.email:", model.email)
+        # print("model.email:", model.email)
         checkout_session = stripe.checkout.Session.create(
             customer_email=model.email,
             line_items=[{"price": model.plan_id, "quantity": 1}],
@@ -64,19 +65,8 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
     # print("event:", event)
-    if event['type'] == 'customer.subscription.created':
-        subscription = event['data']['object']
-        await handle_subscription_created(db, subscription)
-        
-    elif event['type'] == 'customer.subscription.updated':
-        subscription = event['data']['object']
-        await handle_subscription_updated(db, subscription)
-        
-    elif event['type'] == 'customer.subscription.deleted':
-        subscription = event['data']['object']
-        await handle_subscription_deleted(db, subscription)
-        
-    elif event['type'] == 'invoice.payment_succeeded':
+      
+    if event['type'] == 'invoice.payment_succeeded':
         invoice = event['data']['object']
         await handle_subscription_succeeded(db, invoice)
         
@@ -87,44 +77,14 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     else:
         print(f"Unhandled event type {event['type']}")
     return JSONResponse(status_code=200, content={"success": True})
-
-
-
-async def handle_subscription_created(db: Session, subscription: dict):
-    customer_id = subscription['customer']
-    plan_id = subscription['items']['data'][0]['price']['id']
-    
-    start_date = subscription['start_date']
-    end_date = subscription['current_period_end']
-    
-    print("subscription created:", subscription)
-    
-async def handle_subscription_updated(db: Session, subscription: dict):
-    # customer_id = subscription['customer']
-    # plan_id = subscription['items']['data'][0]['price']['id']
-    
-    # start_date = subscription['start_date']
-    # end_date = subscription['current_period_end']
-    
-    print("subscription updated:", subscription)
-    
-async def handle_subscription_deleted(db: Session, subscription: dict):
-    # customer_id = subscription['customer']
-    print("subscription deleted:", subscription)
     
 async def handle_subscription_succeeded(db: Session, invoice):
-    sub_id = invoice
     line_item = invoice['lines']['data'][0]
     plan_id = line_item['plan']['id']
     email = invoice['customer_email']
-    # print("Invoice:", invoice)
-    
-    # user = await crud.get_user_by_email(db, email)
     
     if plan_id == Base_Price_Id:
-        await crud.update_usertype(db, email, 1)
-    
-    print('Payment successful:', invoice)
+        await crud.update_sms_balance(db, email, 500)
 
 async def handle_subscription_failed(db: Session, invoice):
     print("Subscription failed:", invoice)
