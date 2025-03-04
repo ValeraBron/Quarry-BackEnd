@@ -82,7 +82,7 @@ async def send_opt_in_phone(phone_number: str, phone_id: int, db: Session):
 
     messaging_service_sid = "MGbcc5781c1f66253ace25265ebf172701"
     
-    message_body = crud.get_optin_message
+    message_body = await crud.get_optin_message(db)
     from_phone_number = '+17082486451'  # Twilio phone number
     # from_phone_number = '+1 708 248 6451'  # Twilio phone number
     print("twilio: ", message_body, from_phone_number)
